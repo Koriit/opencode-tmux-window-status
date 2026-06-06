@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.tsbuildinfo
+
+# npm pack output
+*.tgz
