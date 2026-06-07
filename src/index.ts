@@ -1,10 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin, PluginModule } from "@opencode-ai/plugin"
 
 const ICON_BUSY = "\uF04B"
 const ICON_IDLE = "\uE63F"
 const ICON_ATTENTION = "\u{F03E4}"
 const ICON_FAILURE = "\u{F1238}"
 const STRIP_RE = /^[\uF04B\uE63F\u{F03E4}\u{F1238} ]+/u
+
+export const PLUGIN_ID = "opencode-tmux-window-status"
 
 /**
  * Renames the current tmux window with a status icon that reflects the
@@ -23,7 +25,7 @@ const STRIP_RE = /^[\uF04B\uE63F\u{F03E4}\u{F1238} ]+/u
  * cannot reliably run. Restore the name from a shell wrapper around `opencode`
  * instead (see README).
  */
-export const TmuxWindowStatusPlugin: Plugin = async ({ $, client }) => {
+export const server: Plugin = async ({ $, client }) => {
   const log = (level: "debug" | "info" | "warn" | "error", message: string, extra?: Record<string, unknown>) =>
     client.app.log({ body: { service: "tmux-window-status", level, message, extra } })
 
@@ -94,4 +96,5 @@ export const TmuxWindowStatusPlugin: Plugin = async ({ $, client }) => {
   }
 }
 
-export default TmuxWindowStatusPlugin
+const plugin: PluginModule = { id: PLUGIN_ID, server }
+export default plugin
