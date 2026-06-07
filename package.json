@@ -1,6 +1,6 @@
 {
   "name": "@koriit/opencode-tmux-window-status",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An OpenCode plugin that renames the current tmux window with a status icon reflecting the session state (busy, idle, needs attention, error).",
   "type": "module",
   "license": "MIT",
