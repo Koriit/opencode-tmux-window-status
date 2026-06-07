@@ -40,8 +40,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install tmux (for e2e tests)
+        run: sudo apt-get update && sudo apt-get install -y tmux
+
       - name: Type-check
         run: bun run typecheck
+
+      - name: Test (unit + e2e, with coverage gate)
+        run: bun test --coverage
 
       - name: Verify tag matches package.json version
         if: github.event_name == 'release'

@@ -1,0 +1,9 @@
+[test]
+# Collect coverage only for the plugin source, not the test files themselves.
+coverage = true
+coverageSkipTestFiles = true
+coverageReporter = ["text"]
+
+# Fail the suite if coverage regresses. The plugin is small and fully covered,
+# so hold a high bar.
+coverageThreshold = { line = 0.95, function = 0.95 }

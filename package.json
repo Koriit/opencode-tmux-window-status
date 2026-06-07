@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "files": [
-    "src",
+    "src/index.ts",
     "README.md",
     "LICENSE"
   ],
@@ -24,7 +24,11 @@
     "provenance": true
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:unit": "bun test src/index.test.ts",
+    "test:e2e": "bun test src/index.e2e.test.ts",
+    "test:coverage": "bun test --coverage"
   },
   "keywords": [
     "opencode",
@@ -39,6 +43,7 @@
   },
   "devDependencies": {
     "@opencode-ai/plugin": "1.15.13",
+    "@opencode-ai/sdk": "1.15.13",
     "@types/bun": "latest",
     "typescript": "^5.7.0"
   }

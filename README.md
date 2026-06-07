@@ -9,15 +9,20 @@ which pane needs your attention.
 While opencode runs inside a tmux pane, the window name is prefixed with an
 icon that tracks the session state:
 
-| State                     | Trigger                               | Icon (Nerd Font) |
-| ------------------------- | ------------------------------------- | ---------------- |
-| Busy / working            | `session.status` → `busy`             | `\uF04B` ()      |
-| Idle / waiting for prompt | `session.status` → `idle`             | `\uE63F` ()      |
-| Needs attention           | `permission.asked` / `question.asked` | `\u{F03E4}` (󰏤)  |
-| Errored                   | `session.error`                       | `\u{F1238}` (󱈸)  |
+| State                     | Trigger                                | Icon (Nerd Font) |
+| ------------------------- | -------------------------------------- | ---------------- |
+| Busy / working            | `session.status` → `busy` (or `retry`) | `\uF04B` ()      |
+| Idle / waiting for prompt | `session.status` → `idle`              | `\uE63F` ()      |
+| Needs attention           | `permission.asked` / `question.asked`  | `\u{F03E4}` (󰏤)  |
+| Errored                   | `session.error`                        | `\u{F1238}` (󱈸)  |
+
+A transient `retry` status (e.g. provider rate-limit backoff) keeps the busy
+icon, since the session is still working on the turn.
 
 The icons are [Nerd Font](https://www.nerdfonts.com/) glyphs; use a Nerd Font
-in your terminal to render them.
+in your terminal to render them. The glyphs embedded in this README and in the
+tmux config examples below also render as empty boxes ("tofu") without a Nerd
+Font installed.
 
 Outside tmux the plugin is a no-op. It also honors `REMOTE_TMUX` / `REMOTE_PANE`
 for controlling a forwarded local tmux server from a remote host (see
@@ -159,6 +164,29 @@ of order and leave a stale icon.
 
 Diagnostics are logged via `client.app.log` under the `tmux-window-status`
 service tag; view them with `opencode --print-logs`.
+
+## Development
+
+This is a [Bun](https://bun.com/) project (requires Bun >= 1.2.0).
+
+```sh
+bun install          # install dependencies
+bun run typecheck    # tsc --noEmit
+bun test             # run unit + e2e tests (with coverage)
+```
+
+Individual suites and reports:
+
+```sh
+bun run test:unit        # fast, fully-mocked unit tests
+bun run test:e2e         # end-to-end tests against a real, throwaway tmux server
+bun run test:coverage    # explicit coverage report
+```
+
+Coverage is collected and gated via `bunfig.toml` (95% line/function threshold).
+The e2e tests spin up an isolated tmux server on a private socket and assert the
+real window name; they automatically **skip** when `tmux` is not on `PATH`, so
+they are a no-op on minimal environments. CI installs `tmux` so both suites run.
 
 ## License
 

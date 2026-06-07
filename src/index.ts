@@ -1,10 +1,24 @@
 import type { Plugin, PluginModule } from "@opencode-ai/plugin"
+import type { Event as EventV2 } from "@opencode-ai/sdk/v2"
+
+type ShellError = Bun.$.ShellError
 
 const ICON_BUSY = "\uF04B"
 const ICON_IDLE = "\uE63F"
 const ICON_ATTENTION = "\u{F03E4}"
 const ICON_FAILURE = "\u{F1238}"
-const STRIP_RE = /^[\uF04B\uE63F\u{F03E4}\u{F1238} ]+/u
+
+// Leading run of any status icon (plus surrounding spaces) we may have applied
+// previously. Derived from the icon constants so the strip set can never drift
+// from the icons themselves. The codepoints are Private-Use-Area glyphs with no
+// regex-metacharacter meaning, so a plain join is safe inside the class.
+const ICONS = [ICON_BUSY, ICON_IDLE, ICON_ATTENTION, ICON_FAILURE] as const
+const STRIP_RE = new RegExp(`^[${ICONS.join("")} ]+`, "u")
+
+/** Narrow an unknown thrown value to Bun's shell error shape, if it is one. */
+function asShellError(err: unknown): ShellError | undefined {
+  return err instanceof Error && "exitCode" in err ? (err as ShellError) : undefined
+}
 
 export const PLUGIN_ID = "opencode-tmux-window-status"
 
@@ -44,9 +58,11 @@ export const server: Plugin = async ({ $, client }) => {
       const base = out.stdout.toString().trim().replace(STRIP_RE, "").trim()
       await tmux("rename-window", "-t", effectivePane, icon + " " + base)
     } catch (err) {
+      const shellErr = asShellError(err)
       await log("error", "rename failed", {
         error: String(err),
-        stderr: (err as { stderr?: { toString(): string } })?.stderr?.toString?.(),
+        stderr: shellErr?.stderr?.toString(),
+        exitCode: shellErr?.exitCode,
       })
     }
   }
@@ -75,22 +91,33 @@ export const server: Plugin = async ({ $, client }) => {
 
   return {
     event: async ({ event }) => {
-      // `permission.asked` / `question.asked` are emitted at runtime but are not
-      // part of the typed plugin `Event` union (it tracks the non-v2 SDK), so
-      // match the type string loosely rather than via the typed discriminant.
-      const type: string = event.type
-      if (type === "permission.asked" || type === "question.asked") {
-        rename(ICON_ATTENTION)
-        return
-      }
-      if (event.type === "session.status") {
-        if (event.properties.status.type === "busy") rename(ICON_BUSY)
-        if (event.properties.status.type === "idle") rename(ICON_IDLE)
-        return
-      }
-      if (event.type === "session.error") {
-        rename(ICON_FAILURE)
-        return
+      // The plugin `Hooks.event` type is still wired to the v1 SDK `Event`
+      // union, which lacks `permission.asked` / `question.asked` (it only has
+      // `permission.updated`). The runtime actually emits the v2 events, so we
+      // re-type the event against the v2 union at this single boundary and then
+      // discriminate with full type-safety below.
+      const e = event as unknown as EventV2
+      switch (e.type) {
+        case "permission.asked":
+        case "question.asked":
+          rename(ICON_ATTENTION)
+          return
+        case "session.status":
+          switch (e.properties.status.type) {
+            case "busy":
+            // `retry` is a transient backoff while still working on the turn;
+            // keep showing the busy icon rather than reverting to idle.
+            case "retry":
+              rename(ICON_BUSY)
+              return
+            case "idle":
+              rename(ICON_IDLE)
+              return
+          }
+          return
+        case "session.error":
+          rename(ICON_FAILURE)
+          return
       }
     },
   }
